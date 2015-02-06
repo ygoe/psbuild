@@ -1,0 +1,221 @@
+# PowerShell build framework
+# Copyright (c) 2015, Yves Goergen, http://unclassified.software/source/psbuild
+#
+# Copying and distribution of this file, with or without modification, are permitted provided the
+# copyright notice and this notice are preserved. This file is offered as-is, without any warranty.
+
+# The svn module provides Subversion source control functions.
+
+# Commits the working directory modifications to the current branch.
+#
+# Requires TortoiseSVN to be installed.
+#
+function Svn-Commit($time)
+{
+	$action = @{ action = "Do-Svn-Commit"; time = $time }
+	$global:actions += $action
+}
+
+# Exports the current repository revision to an archive file.
+#
+# $archive = The file name of the archive to create.
+#
+# Requires TortoiseSVN CLI and 7-Zip to be installed.
+#
+function Svn-Export($archive, $time)
+{
+	$action = @{ action = "Do-Svn-Export"; archive = $archive; time = $time }
+	$global:actions += $action
+}
+
+# Collects the recent commit messages and adds them to a log file, with the current time and
+# revision ID in the header. This file will be opened in an editor to let the user edit it. The
+# purpose of this file is to give it to the end users as a change log or release notes summary.
+#
+# $logFile = The file name of the log file to update and open.
+#
+# Requires TortoiseSVN CLI to be installed.
+#
+function Svn-Log($logFile, $time)
+{
+	$action = @{ action = "Do-Svn-Log"; logFile = $logFile; time = $time }
+	$global:actions += $action
+}
+
+# ==============================  FUNCTION IMPLEMENTATIONS  ==============================
+
+function Do-Svn-Commit($action)
+{
+	Write-Host ""
+	Write-Host -ForegroundColor DarkCyan "Subversion commit and update..."
+
+	# Find the TortoiseProc binary
+	$tsvnBin = Check-RegFilename "hklm:\SOFTWARE\TortoiseSVN" "ProcPath"
+	if ($tsvnBin -eq $null)
+	{
+		WaitError "TortoiseProc binary not found"
+		exit 1
+	}
+	
+	# Wait until the started process has finished
+	& $tsvnBin /command:commit /path:"$sourcePath" | Out-Host
+	if (-not $?)
+	{
+		WaitError "Subversion commit failed"
+		exit 1
+	}
+
+	# Also do an update to ensure that all files are at the same revision. This is required to get
+	# a consistent revision number for a public release build. (This is not necessary for Git.)
+	& $tsvnBin /command:update /path:"$sourcePath" | Out-Host
+	if (-not $?)
+	{
+		WaitError "Subversion update failed"
+		exit 1
+	}
+}
+
+function Do-Svn-Export($action)
+{
+	$archive = $action.archive
+	
+	Write-Host ""
+	Write-Host -ForegroundColor DarkCyan "Subversion export to $archive..."
+
+	if ($revId.Contains("+"))
+	{
+		Write-Host -ForegroundColor Yellow "Warning: The local working copy is modified! Uncommitted changes are exported."
+	}
+
+	# Find the SVN binary
+	$svnBin = Check-RegFilename "hklm:\SOFTWARE\TortoiseSVN" "Directory"
+	$svnBin = Check-Filename "$svnBin\bin\svn.exe"
+	if ($svnBin -eq $null)
+	{
+		WaitError "Tortoise SVN CLI binary not found"
+		exit 1
+	}
+
+	# Find the 7-Zip binary
+	$sevenZipBin = Check-RegFilename "hklm:\SOFTWARE\7-Zip" "Path"
+	$sevenZipBin = Check-Filename "$sevenZipBin\7z.exe"
+	if ($sevenZipBin -eq $null)
+	{
+		WaitError "7-Zip binary not found"
+		exit 1
+	}
+
+	# Delete previous export if it exists
+	if (Test-Path "$sourcePath\.tmp.export")
+	{
+		Remove-Item "$sourcePath\.tmp.export" -Recurse -ErrorAction Stop
+	}
+
+	& $svnBin export -q "$sourcePath" "$sourcePath\.tmp.export"
+	if (-not $?)
+	{
+		WaitError "Subversion export failed"
+		exit 1
+	}
+
+	# Delete previous archive if it exists
+	if (Test-Path (MakeRootedPath $archive))
+	{
+		Remove-Item (MakeRootedPath $archive) -ErrorAction Stop
+	}
+
+	Push-Location "$sourcePath\.tmp.export"
+	& $sevenZipBin a (MakeRootedPath $archive) -mx=9 * | where {
+		$_ -notmatch "^7-Zip " -and `
+		$_ -notmatch "^Scanning$" -and `
+		$_ -notmatch "^Creating archive " -and `
+		$_ -notmatch "^\s*$" -and `
+		$_ -notmatch "^Compressing "
+	}
+	if (-not $?)
+	{
+		Pop-Location
+		WaitError "Creating SVN export archive failed"
+		exit 1
+	}
+	Pop-Location
+
+	# Clean up
+	Remove-Item "$sourcePath\.tmp.export" -Recurse
+}
+
+function Do-Svn-Log($action)
+{
+	$logFile = $action.logFile
+	
+	Write-Host ""
+	Write-Host -ForegroundColor DarkCyan "Subversion log dump..."
+	
+	if ($revId.Contains("+"))
+	{
+		Write-Host -ForegroundColor Yellow "Warning: The local working copy is modified!"
+	}
+
+	# Find the SVN binary
+	$svnBin = Check-RegFilename "hklm:\SOFTWARE\TortoiseSVN" "Directory"
+	$svnBin = Check-Filename "$svnBin\bin\svn.exe"
+	if ($svnBin -eq $null)
+	{
+		WaitError "Tortoise SVN CLI binary not found"
+		exit 1
+	}
+	
+	# Read the output log file and determine the last added revision
+	$data = ""
+	$startRev = 1;
+	if (Test-Path (MakeRootedPath $logFile))
+	{
+		$data = [System.IO.File]::ReadAllText((MakeRootedPath $logFile))
+		if ($data -Match " - r([0-9]+)")
+		{
+			$startRev = [int]([regex]::Match($data, " - r([0-9]+)")).Groups[1].Value + 1
+		}
+	}
+
+	Write-Host Adding log messages since revision $startRev
+	
+	# Get log messages for the new revisions
+	$consoleEncoding = [System.Console]::OutputEncoding
+	[System.Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+	Push-Location "$sourcePath"
+	$xmlText = (& $svnBin log --xml -r ${startRev}:HEAD 2>&1)
+	if (-not $?)
+	{
+		Pop-Location
+		[System.Console]::OutputEncoding = $consoleEncoding
+		WaitError "Subversion log failed"
+		exit 1
+	}
+	Pop-Location
+	[System.Console]::OutputEncoding = $consoleEncoding
+	if (([string]$xmlText).Contains(": No such revision $startRev"))
+	{
+		Write-Host "No new messages"
+		return
+	}
+	# DEBUG: Write-Host -ForegroundColor Yellow $xmlText
+	$xml = [xml]$xmlText
+
+	# Extract non-empty lines from all returned messages
+	$msgs = $xml.log.logentry.msg -split "`n" | Foreach { $_.Trim() } | Where { $_ }
+
+	# Format current date and revision and new messages
+	$date = $xml.SelectSingleNode("(/log/logentry)[last()]/date").InnerText
+	$currentRev = $xml.SelectSingleNode("(/log/logentry)[last()]/@revision").Value
+	$caption = $date.Substring(0, 10) + " - r" + $currentRev
+	$newMsgs = $caption + "`r`n" + `
+		("—" * $caption.Length) + "`r`n" + `
+		[string]::Join("`r`n", $msgs).Replace("`r`r", "`r") + "`r`n`r`n"
+
+	# Write back the complete file
+	$data = ($newMsgs + $data).Trim() + "`r`n"
+	[System.IO.File]::WriteAllText((MakeRootedPath $logFile), $data)
+
+	# Open file in editor for manual edits of the raw changes
+	Invoke-Expression (MakeRootedPath $logFile)
+}

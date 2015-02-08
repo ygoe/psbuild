@@ -16,12 +16,15 @@
 #
 # The format for remote paths is "user@host:/path/".
 #
-# The remote path and password should be passed from variables that are defined in a file that is
-# excluded from the source code repository. This file can be sourced into the definition script
-# to make the variables available. Example:
+# The remote path and password should be passed from variables that are defined in the private
+# configuration file which is excluded from the source code repository. Example:
 #
-#    . "$sourcePath\.local\ssh_config.ps1"
 #    Sftp-Copy "My.exe" "$sshDest" "$sshPassword" 15
+#
+# The file _scripts\buildscript\private.ps1 could contain this script:
+#
+#    $sshDest = "user@host:/path/"
+#    $sshPassword = "secret"
 #
 # Requires PSCP from PuTTY to be in the search path.
 #

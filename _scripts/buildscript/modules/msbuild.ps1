@@ -59,8 +59,8 @@ function Do-Build-Solution($action)
 	# Set %SuppressNetRevisionTool% and perform NetRevisionTool call once for the entire solution
 	if ($global:revisionToolUsed)
 	{
-		& (Join-Path $absToolsPath "NetRevisionTool") /multi /patch $global:revisionToolOptions (MakeRootedPath $solution)
-		if (-not $?)
+		Invoke-Expression ((Join-Path $absToolsPath "NetRevisionTool") + " /multi /patch " + $global:revisionToolOptions + " `"" + (MakeRootedPath $solution) + "`"")
+		if ($LASTEXITCODE -ne 0)
 		{
 			WaitError "NetRevisionTool multi-project patch failed"
 			exit 1
@@ -96,8 +96,8 @@ function Do-Build-Solution($action)
 	if ($global:revisionToolUsed)
 	{
 		$env:SuppressNetRevisionTool = ""
-		& (Join-Path $absToolsPath "NetRevisionTool") /multi /restore (MakeRootedPath $solution)
-		if (-not $?)
+		Invoke-Expression ((Join-Path $absToolsPath "NetRevisionTool") + " /multi /restore " + $global:revisionToolOptions + " `"" + (MakeRootedPath $solution) + "`"")
+		if ($LASTEXITCODE -ne 0)
 		{
 			if ($buildError)
 			{

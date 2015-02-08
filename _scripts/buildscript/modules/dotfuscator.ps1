@@ -46,7 +46,7 @@ function Do-Run-Dotfuscate($action)
 	$config = [xml](Get-Content (MakeRootedPath($configFile)))
 	$mapDir = $config.SelectSingleNode("/dotfuscator/renaming/mapping/mapoutput/file/@dir").'#text'
 	$mapFile = $mapDir + "\" + $config.SelectSingleNode("/dotfuscator/renaming/mapping/mapoutput/file/@name").'#text'
-	$mapFile = $mapFile.Replace("`${configdir}", $sourcePath)
+	$mapFile = $mapFile.Replace("`${configdir}", $rootDir)
 	if ($mapFile.EndsWith(".xml"))
 	{
 		# Find and delete previous map file
@@ -57,7 +57,8 @@ function Do-Run-Dotfuscate($action)
 		}
 	}
 	
-	& $dotfuscatorBin /q "$sourcePath\$configFile" | where {
+	# TODO: Add English texts
+	& $dotfuscatorBin /q "$rootDir\$configFile" | where {
 		$_ -notmatch "^Dotfuscator Community Edition Version " -and `
 		$_ -notmatch "^Copyright .* PreEmptive Solutions, " -and `
 		$_ -notmatch "^Mit dem Verwenden dieser Software stimmen Sie dem " -and `

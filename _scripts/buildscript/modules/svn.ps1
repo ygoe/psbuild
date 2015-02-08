@@ -58,7 +58,7 @@ function Do-Svn-Commit($action)
 	}
 	
 	# Wait until the started process has finished
-	& $tsvnBin /command:commit /path:"$sourcePath" | Out-Host
+	& $tsvnBin /command:commit /path:"$rootDir" | Out-Host
 	if (-not $?)
 	{
 		WaitError "Subversion commit failed"
@@ -67,7 +67,7 @@ function Do-Svn-Commit($action)
 
 	# Also do an update to ensure that all files are at the same revision. This is required to get
 	# a consistent revision number for a public release build. (This is not necessary for Git.)
-	& $tsvnBin /command:update /path:"$sourcePath" | Out-Host
+	& $tsvnBin /command:update /path:"$rootDir" | Out-Host
 	if (-not $?)
 	{
 		WaitError "Subversion update failed"
@@ -82,10 +82,17 @@ function Do-Svn-Export($action)
 	Write-Host ""
 	Write-Host -ForegroundColor DarkCyan "Subversion export to $archive..."
 
-	if ($revId.Contains("+"))
+	# Warn on modified working directory
+	# (Set a dummy format so that it won't go search an AssemblyInfo file somewhere. We don't provide a suitable path for that.)
+	$consoleEncoding = [System.Console]::OutputEncoding
+	[System.Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+	$revId = Invoke-Expression ((Join-Path $absToolsPath "NetRevisionTool") + " /format dummy /rejectmod `"$rootDir`"")
+	if ($LASTEXITCODE -ne 0)
 	{
+		[System.Console]::OutputEncoding = $consoleEncoding
 		Write-Host -ForegroundColor Yellow "Warning: The local working copy is modified! Uncommitted changes are exported."
 	}
+	[System.Console]::OutputEncoding = $consoleEncoding
 
 	# Find the SVN binary
 	$svnBin = Check-RegFilename "hklm:\SOFTWARE\TortoiseSVN" "Directory"
@@ -106,12 +113,12 @@ function Do-Svn-Export($action)
 	}
 
 	# Delete previous export if it exists
-	if (Test-Path "$sourcePath\.tmp.export")
+	if (Test-Path "$rootDir\.tmp.export")
 	{
-		Remove-Item "$sourcePath\.tmp.export" -Recurse -ErrorAction Stop
+		Remove-Item "$rootDir\.tmp.export" -Recurse -ErrorAction Stop
 	}
 
-	& $svnBin export -q "$sourcePath" "$sourcePath\.tmp.export"
+	& $svnBin export -q "$rootDir" "$rootDir\.tmp.export"
 	if (-not $?)
 	{
 		WaitError "Subversion export failed"
@@ -124,7 +131,7 @@ function Do-Svn-Export($action)
 		Remove-Item (MakeRootedPath $archive) -ErrorAction Stop
 	}
 
-	Push-Location "$sourcePath\.tmp.export"
+	Push-Location "$rootDir\.tmp.export"
 	& $sevenZipBin a (MakeRootedPath $archive) -mx=9 * | where {
 		$_ -notmatch "^7-Zip " -and `
 		$_ -notmatch "^Scanning$" -and `
@@ -141,7 +148,7 @@ function Do-Svn-Export($action)
 	Pop-Location
 
 	# Clean up
-	Remove-Item "$sourcePath\.tmp.export" -Recurse
+	Remove-Item "$rootDir\.tmp.export" -Recurse
 }
 
 function Do-Svn-Log($action)
@@ -151,10 +158,18 @@ function Do-Svn-Log($action)
 	Write-Host ""
 	Write-Host -ForegroundColor DarkCyan "Subversion log dump..."
 	
-	if ($revId.Contains("+"))
+	# Stop on modified working directory
+	# (Set a dummy format so that it won't go search an AssemblyInfo file somewhere. We don't provide a suitable path for that.)
+	$consoleEncoding = [System.Console]::OutputEncoding
+	[System.Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+	$revId = Invoke-Expression ((Join-Path $absToolsPath "NetRevisionTool") + " /format dummy /rejectmod `"$rootDir`"")
+	if ($LASTEXITCODE -ne 0)
 	{
-		Write-Host -ForegroundColor Yellow "Warning: The local working copy is modified!"
+		[System.Console]::OutputEncoding = $consoleEncoding
+		WaitError "The local working copy is modified"
+		exit 1
 	}
+	[System.Console]::OutputEncoding = $consoleEncoding
 
 	# Find the SVN binary
 	$svnBin = Check-RegFilename "hklm:\SOFTWARE\TortoiseSVN" "Directory"
@@ -171,18 +186,25 @@ function Do-Svn-Log($action)
 	if (Test-Path (MakeRootedPath $logFile))
 	{
 		$data = [System.IO.File]::ReadAllText((MakeRootedPath $logFile))
-		if ($data -Match " - r([0-9]+)")
+		if ($data -Match " - .+ \(r([0-9]+)\)")
 		{
-			$startRev = [int]([regex]::Match($data, " - r([0-9]+)")).Groups[1].Value + 1
+			$startRev = [int]([regex]::Match($data, " - .+ \(r([0-9]+)\)")).Groups[1].Value + 1
 		}
 	}
 
-	Write-Host Adding log messages since revision $startRev
+	if ($lastRev)
+	{
+		Write-Host "Adding log messages since revision $startRev"
+	}
+	else
+	{
+		Write-Host "Adding all log messages since the first revision (new log file)"
+	}
 	
 	# Get log messages for the new revisions
 	$consoleEncoding = [System.Console]::OutputEncoding
 	[System.Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-	Push-Location "$sourcePath"
+	Push-Location "$rootDir"
 	$xmlText = (& $svnBin log --xml -r ${startRev}:HEAD 2>&1)
 	if (-not $?)
 	{
@@ -207,15 +229,15 @@ function Do-Svn-Log($action)
 	# Format current date and revision and new messages
 	$date = $xml.SelectSingleNode("(/log/logentry)[last()]/date").InnerText
 	$currentRev = $xml.SelectSingleNode("(/log/logentry)[last()]/@revision").Value
-	$caption = $date.Substring(0, 10) + " - r" + $currentRev
+	$caption = $date.Substring(0, 10) + " - " + $shortRevId + " (r" + $currentRev + ")"
 	$newMsgs = $caption + "`r`n" + `
 		("—" * $caption.Length) + "`r`n" + `
 		[string]::Join("`r`n", $msgs).Replace("`r`r", "`r") + "`r`n`r`n"
 
 	# Write back the complete file
 	$data = ($newMsgs + $data).Trim() + "`r`n"
-	[System.IO.File]::WriteAllText((MakeRootedPath $logFile), $data)
+	[System.IO.File]::WriteAllText((MakeRootedPath $logFile), $data, [System.Text.Encoding]::UTF8)
 
 	# Open file in editor for manual edits of the raw changes
-	Invoke-Expression (MakeRootedPath $logFile)
+	Start-Process (MakeRootedPath $logFile)
 }

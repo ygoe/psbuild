@@ -41,7 +41,7 @@ $batchMode = ($batchMode -eq "batch")
 Clear-Host
 
 $scriptDir = ($MyInvocation.MyCommand.Definition | Split-Path -parent)
-$sourcePath = $scriptDir | Split-Path -parent | Split-Path -parent
+$rootDir = $scriptDir | Split-Path -parent | Split-Path -parent
 $startTime = Get-Date
 
 # Configuration defaults
@@ -49,6 +49,7 @@ $startTime = Get-Date
 $toolsPath = "../bin"
 $modulesPath = "modules"
 $revId = "0"
+$shortRevId = "0"
 $noParallelBuild = $false
 $revisionToolOptions = ""
 
@@ -65,7 +66,7 @@ $absToolsPath = Join-Path $scriptDir $toolsPath
 function Check-FileName($fn)
 {
 	$fn = [System.Environment]::ExpandEnvironmentVariables($fn)
-	if (test-path $fn)
+	if (Test-Path $fn)
 	{
 		return $fn
 	}
@@ -82,13 +83,13 @@ function Check-RegFilename($key, $value)
 	}
 }
 
-# Returns a rooted path. Non-rooted paths are interpreted relative to $sourcePath.
+# Returns a rooted path. Non-rooted paths are interpreted relative to $rootDir.
 #
 function MakeRootedPath($path)
 {
 	if (![System.IO.Path]::IsPathRooted($path))
 	{
-		return "$sourcePath\$path"
+		return "$rootDir\$path"
 	}
 	return $path
 }
@@ -270,15 +271,25 @@ function Get-Platform()
 
 # Returns the VCS revision ID of the working directory.
 #
-function Get-VcsRevision($format)
+function Get-VcsRevision($haveFormat)
 {
-	# Determine current repository revision
-	$revId = & (Join-Path $absToolsPath "NetRevisionTool") /format "$format" $global:revisionToolOptions "$sourcePath"
-	if ($revId -eq $null)
+	$args = $global:revisionToolOptions
+	if (!$haveFormat)
 	{
+		# Scan the solution for a format defined in a project
+		$args += " /multi"
+	}
+	
+	$consoleEncoding = [System.Console]::OutputEncoding
+	[System.Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+	$revId = Invoke-Expression ((Join-Path $absToolsPath "NetRevisionTool") + " " + $args + " `"$rootDir`"")
+	if ($LASTEXITCODE -ne 0)
+	{
+		[System.Console]::OutputEncoding = $consoleEncoding
 		WaitError "Repository revision could not be determined"
 		exit 1
 	}
+	[System.Console]::OutputEncoding = $consoleEncoding
 	$global:revisionToolUsed = $true
 	return $revId
 }
@@ -334,13 +345,21 @@ function Begin-BuildScript($projectTitle)
 
 # Sets the application version from the VCS revision.
 #
-# $format = The NetRevisionTool format string.
+# $format = The NetRevisionTool format string. If unset, the format is searched in a project.
 # $options = Additional options passed to NetRevisionTool.
 #
 function Set-VcsVersion($format, $options)
 {
+	$haveFormat = $false
+	if ($format)
+	{
+		$options += " /format `"" + $format + "`""
+		$haveFormat = $true
+	}
 	$global:revisionToolOptions = $options
-	$global:revId = Get-VcsRevision
+	$global:revId = Get-VcsRevision $haveFormat
+	# Make a shorter version that only includes numbers and dots
+	$global:shortRevId = $global:revId -Replace "[^0-9.].*$",""
 }
 
 # Sets the application version from an assembly version attribute.
@@ -352,6 +371,8 @@ function Set-VcsVersion($format, $options)
 function Set-AssemblyInfoVersion($sourceFile, $attributeName)
 {
 	$global:revId = Get-AssemblyInfoVersion $sourceFile $attributeName
+	# Make a shorter version that only includes numbers and dots
+	$global:shortRevId = $global:revId -Replace "[^0-9.].*$",""
 }
 
 # Disables using parallel builds with MSBuild.
@@ -374,6 +395,11 @@ function End-BuildScript()
 		$totalTime += $action.time
 	}
 	Write-Host "Total scheduled time: $totalTime s"
+	if (!$totalTime)
+	{
+		# Prevent divide by zero
+		$totalTime = 1
+	}
 
 	$timeSum = 0
 	foreach ($action in $actions)
@@ -382,9 +408,8 @@ function End-BuildScript()
 		& $functionName $action
 		
 		$timeSum += $action.time
-		$progressAfter = [int] ($timeSum / $totalTime * 100)
+		$progressAfter = [int] (100 * $timeSum / $totalTime)
 		& (Join-Path $absToolsPath "FlashConsoleWindow") -progress $progressAfter
-		$timeSum += $action.time
 	}
 	
 	$endTime = Get-Date
@@ -417,6 +442,13 @@ Get-ChildItem (Join-Path $scriptDir $modulesPath) `
 	| ForEach { . $_.FullName }
 
 # ==============================  CONTROL FILE  ==============================
+
+# Include the private config file if it exists
+$privateConfigFile = (Join-Path $scriptDir "private.ps1")
+if (Test-Path $privateConfigFile)
+{
+	. $privateConfigFile
+}
 
 # Include the control file that specifies what to do
 . (Join-Path $scriptDir "control.ps1")

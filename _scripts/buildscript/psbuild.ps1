@@ -6,7 +6,7 @@
 
 # ---------- USAGE ----------
 #
-# psbuild.ps1 <config-parts> [batch]
+# psbuild.ps1 "<config-parts>" [batch]
 #
 # config-parts: Space-separated list of selected build script parts. These parts can be tested for
 #               with the IsSelected function.

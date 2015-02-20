@@ -2,6 +2,8 @@
 # Project-specific control file
 
 Begin-BuildScript "FieldLog"
+
+# Find revision format from the source code, require Git checkout
 Set-VcsVersion "" "/require git"
 
 # FieldLog.*NET* projects are overlapping, don't build them in parallel

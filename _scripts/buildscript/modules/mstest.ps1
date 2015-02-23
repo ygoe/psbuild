@@ -13,7 +13,7 @@
 # $testList = The name of the test list to run.
 # $resultFile = The name of the test result file to create.
 #
-# Requires MSTest from Visual Studio 2010 to be installed.
+# Requires MSTest from Visual Studio 2015, 2013, 2012 or 2010 to be installed.
 #
 function Run-MSTest($metadataFile, $runConfig, $testList, $resultFile, $time)
 {
@@ -33,16 +33,28 @@ function Do-Run-MSTest($action)
 	Write-Host ""
 	Write-Host -ForegroundColor DarkCyan "Running test $metadataFile, $runConfig, $testList..."
 
-	# Find the MSTest binary
-	if ((Get-Platform) -eq "x64")
-	{
-		$mstestBin = Check-FileName "%ProgramFiles(x86)%\Microsoft Visual Studio 10.0\Common7\IDE\MSTest.exe"
-	}
+	# Normalise the ProgramFilesx86 directory for all system platforms (how stupid...)
+	$pfx86 = "%ProgramFiles(x86)%"
 	if ((Get-Platform) -eq "x86")
 	{
-		$mstestBin = Check-FileName "%ProgramFiles%\Microsoft Visual Studio 10.0\Common7\IDE\MSTest.exe"
+		$pfx86 = "%ProgramFiles%"
 	}
-	if ($mstestBin -eq $null)
+	
+	# Find the MSTest binary
+	$mstestBin = Check-FileName "$pfx86\Microsoft Visual Studio 14.0\Common7\IDE\MSTest.exe"
+	if (!$mstestBin)
+	{
+		$mstestBin = Check-FileName "$pfx86\Microsoft Visual Studio 12.0\Common7\IDE\MSTest.exe"
+	}
+	if (!$mstestBin)
+	{
+		$mstestBin = Check-FileName "$pfx86\Microsoft Visual Studio 11.0\Common7\IDE\MSTest.exe"
+	}
+	if (!$mstestBin)
+	{
+		$mstestBin = Check-FileName "$pfx86\Microsoft Visual Studio 10.0\Common7\IDE\MSTest.exe"
+	}
+	if (!$mstestBin)
 	{
 		WaitError "MSTest binary not found"
 		exit 1

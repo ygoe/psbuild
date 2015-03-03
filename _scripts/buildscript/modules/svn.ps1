@@ -10,7 +10,7 @@
 #
 # Requires TortoiseSVN to be installed.
 #
-function Svn-Commit($time)
+function Svn-Commit($time = 5)
 {
 	$action = @{ action = "Do-Svn-Commit"; time = $time }
 	$global:actions += $action
@@ -22,7 +22,7 @@ function Svn-Commit($time)
 #
 # Requires TortoiseSVN CLI and 7-Zip to be installed.
 #
-function Svn-Export($archive, $time)
+function Svn-Export($archive, $time = 5)
 {
 	$action = @{ action = "Do-Svn-Export"; archive = $archive; time = $time }
 	$global:actions += $action
@@ -36,7 +36,7 @@ function Svn-Export($archive, $time)
 #
 # Requires TortoiseSVN CLI to be installed.
 #
-function Svn-Log($logFile, $time)
+function Svn-Log($logFile, $time = 1)
 {
 	$action = @{ action = "Do-Svn-Log"; logFile = $logFile; time = $time }
 	$global:actions += $action

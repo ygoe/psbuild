@@ -10,7 +10,7 @@
 #
 # $configFile = The file name of the obfuscator configuration file.
 #
-function Run-Obfuscate($configFile, $time)
+function Run-Obfuscate($configFile, $time = 5)
 {
 	$action = @{ action = "Do-Run-Obfuscate"; configFile = $configFile; time = $time }
 	$global:actions += $action

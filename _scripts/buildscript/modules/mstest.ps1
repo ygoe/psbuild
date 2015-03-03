@@ -15,7 +15,7 @@
 #
 # Requires MSTest from Visual Studio 2015, 2013, 2012 or 2010 to be installed.
 #
-function Run-MSTest($metadataFile, $runConfig, $testList, $resultFile, $time)
+function Run-MSTest($metadataFile, $runConfig, $testList, $resultFile, $time = 5)
 {
 	$action = @{ action = "Do-Run-MSTest"; metadataFile = $metadataFile; runConfig = $runConfig; testList = $testList; resultFile = $resultFile; time = $time }
 	$global:actions += $action

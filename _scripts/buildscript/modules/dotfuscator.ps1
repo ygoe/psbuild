@@ -12,7 +12,7 @@
 #
 # Requires Dotfuscator CE 5.0.2601 from Visual Studio 2010 with the CLI upgrade to be installed.
 #
-function Run-Dotfuscate($configFile, $time)
+function Run-Dotfuscate($configFile, $time = 30)
 {
 	$action = @{ action = "Do-Run-Dotfuscate"; configFile = $configFile; time = $time }
 	$global:actions += $action

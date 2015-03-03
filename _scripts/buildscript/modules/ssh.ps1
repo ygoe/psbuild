@@ -28,7 +28,7 @@
 #
 # Requires PSCP from PuTTY to be in the search path.
 #
-function Sftp-Copy($src, $dest, $password, $time)
+function Sftp-Copy($src, $dest, $password, $time = 5)
 {
 	$action = @{ action = "Do-Sftp-File"; src = $src; dest = $dest; password = $password; time = $time }
 	$global:actions += $action

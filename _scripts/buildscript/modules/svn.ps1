@@ -158,6 +158,12 @@ function Do-Svn-Log($action)
 	Write-Host ""
 	Write-Host -ForegroundColor DarkCyan "Subversion log dump..."
 	
+	if ($PSVersionTable.PSVersion.Major -lt 3)
+	{
+		WaitError "PowerShell 3 or newer required for SVN log"
+		exit 1
+	}
+	
 	# Stop on modified working directory
 	# (Set a dummy format so that it won't go search an AssemblyInfo file somewhere. We don't provide a suitable path for that.)
 	$consoleEncoding = [System.Console]::OutputEncoding

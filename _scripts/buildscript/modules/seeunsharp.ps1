@@ -6,32 +6,43 @@
 
 # The seeunsharp module provides SeeUnsharp code obfuscation functions.
 
-# Obfuscates assembly files with SeeUnsharp.
+# Obfuscates assembly files with SeeUnsharp .NET Obfuscator.
 #
-# $configFile = The file name of the obfuscator configuration file.
+# $configFile = The file name of the SeeUnsharp parameter file.
 #
-function Run-Obfuscate($configFile, $time = 5)
+# Requires SeeUnsharp to be installed.
+#
+function Run-SeeUnsharp($configFile, $time = 5)
 {
-	$action = @{ action = "Do-Run-Obfuscate"; configFile = $configFile; time = $time }
+	$action = @{ action = "Do-Run-SeeUnsharp"; configFile = $configFile; time = $time }
 	$global:actions += $action
 }
 
 # ==============================  FUNCTION IMPLEMENTATIONS  ==============================
 
-function Do-Run-Obfuscate($action)
+function Do-Run-SeeUnsharp($action)
 {
 	$configFile = $action.configFile
 	
 	Write-Host ""
-	Write-Host -ForegroundColor DarkCyan "Obfuscating $configFile..."
+	Write-Host -ForegroundColor DarkCyan "Obfuscating with $configFile..."
 
-	# Find the Obfuscator binary
-	# TODO
-
-	# Rename new map file with current build version
-	# TODO
-	if ($mapFile.EndsWith(".xml"))
+	# Find the SeeUnsharp binary
+	$suBin = Check-RegFilename "hkcu:\Software\Unclassified\SeeUnsharp" "ExecutablePath"
+	if ($suBin -eq $null)
 	{
-		#Move-Item -Force "$mapFile" $mapFile.Replace(".xml", ".$revId.xml")
+		$suBin = Check-RegFilename "hklm:\Software\Unclassified\SeeUnsharp" "ExecutablePath"
+	}
+	if ($suBin -eq $null)
+	{
+		WaitError "SeeUnsharp binary not found"
+		exit 1
+	}
+
+	& $suBin "@$rootDir\$configFile"
+	if (-not $?)
+	{
+		WaitError "Obfuscation failed"
+		exit 1
 	}
 }

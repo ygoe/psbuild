@@ -92,12 +92,15 @@ if (IsSelected transfer-web)
 {
 	Copy-File "Setup\bin\FieldLogSetup-$revId.exe" "$webDir\files\source\fieldlog\"
 	Copy-File ".local\FieldLogChanges.txt" "$webDir\files\source\fieldlog\"
+	
+	$today = (Get-Date -Format "yyyy-MM-dd")
+	Exec-File "_scripts\bin\AutoReplace.exe" "$webDataFile fieldlog version=$revId date=$today"
 }
 
 # Upload to NuGet
 if (IsSelected transfer-nuget)
 {
-	Push-NuGetPackage "FieldLog\bin\Unclassified.FieldLog" $nuGetApiKey 45
+	Push-NuGetPackage "FieldLog\bin\Unclassified.FieldLog" $nuGetApiKey 15
 }
 
 End-BuildScript

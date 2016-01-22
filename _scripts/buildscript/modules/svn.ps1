@@ -46,8 +46,7 @@ function Svn-Log($logFile, $time = 1)
 
 function Do-Svn-Commit($action)
 {
-	Write-Host ""
-	Write-Host -ForegroundColor DarkCyan "Subversion commit and update..."
+	Show-ActionHeader "Subversion commit and update"
 
 	# Find the TortoiseProc binary
 	$tsvnBin = Check-RegFilename "hklm:\SOFTWARE\TortoiseSVN" "ProcPath"
@@ -79,8 +78,7 @@ function Do-Svn-Export($action)
 {
 	$archive = $action.archive
 	
-	Write-Host ""
-	Write-Host -ForegroundColor DarkCyan "Subversion export to $archive..."
+	Show-ActionHeader "Subversion export to $archive"
 
 	# Warn on modified working directory
 	# (Set a dummy format so that it won't go search an AssemblyInfo file somewhere. We don't provide a suitable path for that.)
@@ -155,8 +153,7 @@ function Do-Svn-Log($action)
 {
 	$logFile = $action.logFile
 	
-	Write-Host ""
-	Write-Host -ForegroundColor DarkCyan "Subversion log dump..."
+	Show-ActionHeader "Subversion log dump"
 	
 	if ($PSVersionTable.PSVersion.Major -lt 3)
 	{

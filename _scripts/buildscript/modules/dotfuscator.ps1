@@ -24,8 +24,7 @@ function Do-Run-Dotfuscate($action)
 {
 	$configFile = $action.configFile
 	
-	Write-Host ""
-	Write-Host -ForegroundColor DarkCyan "Dotfuscating $configFile..."
+	Show-ActionHeader "Dotfuscating $configFile"
 
 	# Find the Dotfuscator CLI binary
 	if ((Get-Platform) -eq "x64")

@@ -42,8 +42,7 @@ function Do-Sftp-File($action)
 	$dest = $action.dest
 	$password = $action.password
 	
-	Write-Host ""
-	Write-Host -ForegroundColor DarkCyan "Copying $src to $dest..."
+	Show-ActionHeader "Copying $src to $dest"
 
 	Push-Location "$sourcePath"
 	& pscp -sftp -batch -pw "$password" "$src" "$dest"

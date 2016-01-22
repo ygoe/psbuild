@@ -14,7 +14,7 @@
 #
 # Requires $toolsPath\PdbConvert.exe.
 #
-function Pdb-Convert($binary, $outFile, $options, $time = 2)
+function Pdb-Convert($binary, $outFile, $options, $time = 1)
 {
 	$action = @{ action = "Do-Pdb-Convert"; binary = $binary; outFile = $outFile; options = $options; time = $time }
 	$global:actions += $action
@@ -28,8 +28,7 @@ function Do-Pdb-Convert($action)
 	$outFile = $action.outFile
 	$options = $action.options
 	
-	Write-Host ""
-	Write-Host -ForegroundColor DarkCyan "Converting debug symbols..."
+	Show-ActionHeader "Converting debug symbols"
 
 	$binPath = (MakeRootedPath $binary)
 	$params = "`"$binPath`" /srcbase `"$rootDir`" $options"

@@ -43,8 +43,7 @@ function Do-Run-MSTestMeta($action)
 	$testList = $action.testList
 	$resultFile = $action.resultFile
 	
-	Write-Host ""
-	Write-Host -ForegroundColor DarkCyan "Running test $metadataFile, $runConfig, $testList..."
+	Show-ActionHeader "Running test $metadataFile, $runConfig, $testList"
 
 	$md = (MakeRootedPath $metadataFile)
 	$rc = (MakeRootedPath $runConfig)
@@ -54,7 +53,7 @@ function Do-Run-MSTestMeta($action)
 	$resultDir = [System.IO.Path]::GetDirectoryName("$rf")
 	[void][System.IO.Directory]::CreateDirectory($resultDir)
 	
-	$mstestBin = (Find-MSTest)
+	$mstestBin = Find-MSTest
 	& $mstestBin /nologo /testmetadata:"$md" /runconfig:"$rc" /testlist:"$testList" /resultsfile:"$rf"
 	if (-not $?)
 	{
@@ -68,8 +67,7 @@ function Do-Run-MSTestAsm($action)
 	$asmFile = $action.asmFile
 	$resultFile = $action.resultFile
 	
-	Write-Host ""
-	Write-Host -ForegroundColor DarkCyan "Running tests in $asmFile..."
+	Show-ActionHeader "Running tests in $asmFile"
 
 	$af = (MakeRootedPath $asmFile)
 	$rf = (MakeRootedPath $resultFile)
@@ -83,7 +81,7 @@ function Do-Run-MSTestAsm($action)
 	
 	# MSBuild command line reference: https://msdn.microsoft.com/en-us/library/ms182489.aspx
 	
-	$mstestBin = (Find-MSTest)
+	$mstestBin = Find-MSTest
 	& $mstestBin /nologo /testcontainer:"$af" /resultsfile:"$rf" /detail:errormessage /detail:errorstacktrace /usestderr | Out-Null
 	if (-not $?)
 	{

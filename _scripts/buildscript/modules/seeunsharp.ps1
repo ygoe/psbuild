@@ -24,8 +24,7 @@ function Do-Run-SeeUnsharp($action)
 {
 	$configFile = $action.configFile
 	
-	Write-Host ""
-	Write-Host -ForegroundColor DarkCyan "Obfuscating with $configFile..."
+	Show-ActionHeader "Obfuscating with $configFile"
 
 	# Find the SeeUnsharp binary
 	$suBin = Check-RegFilename "hkcu:\Software\Unclassified\SeeUnsharp" "ExecutablePath"

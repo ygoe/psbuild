@@ -30,8 +30,8 @@ function Do-Pdb-Convert($action)
 	
 	Show-ActionHeader "Converting debug symbols"
 
-	$binPath = (MakeRootedPath $binary)
-	$params = "`"$binPath`" /srcbase `"$rootDir`" $options"
+	$binary = ($binary -Split " " | ForEach-Object { "`"$(MakeRootedPath $_ )`""}) -Join " "
+	$params = "$binary /srcbase `"$rootDir`" $options"
 	if ($outFile)
 	{
 		$outPath = (MakeRootedPath $outFile)

@@ -32,12 +32,9 @@ function Do-Build-Solution($action)
 	
 	if ($global:revisionToolUsed)
 	{
-		Show-ActionHeader "Building $solutionFile for $configuration|$buildPlatform (Do not press Ctrl+C now)"
+		$ctrlCInfo = "(Do not press Ctrl+C now)"
 	}
-	else
-	{
-		Show-ActionHeader "Building $solutionFile for $configuration|$buildPlatform"
-	}
+	Show-ActionHeader "Building $solutionFile for $configuration|$buildPlatform" $ctrlCInfo
 
 	# Normalise the ProgramFilesx86 directory for all system platforms (how stupid...)
 	$pfx86 = "%ProgramFiles(x86)%"

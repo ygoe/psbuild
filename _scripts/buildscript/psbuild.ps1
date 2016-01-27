@@ -159,13 +159,18 @@ function Move-Cursor($count)
 
 # Shows a header line for a module action.
 #
-function Show-ActionHeader($text)
+function Show-ActionHeader($text, $text2)
 {
 	if ($Host.UI.RawUI.CursorPosition.Y -gt $global:actionHeaderRow)
 	{
 		Write-Host ""
 	}
-	Write-Host -ForegroundColor DarkCyan "$text..."
+	Write-Host -ForegroundColor DarkCyan "$text..." -NoNewLine
+	if ($text2)
+	{
+		Write-Host -ForegroundColor DarkGray " $text2" -NoNewLine
+	}
+	Write-Host ""
 	$global:actionHeaderRow = $Host.UI.RawUI.CursorPosition.Y;
 }
 

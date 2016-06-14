@@ -313,3 +313,18 @@ function Find-Git()
 	}
 	return $gitBin
 }
+
+function Git-IsModified()
+{
+	# (Set a dummy format so that it won't go search an AssemblyInfo file somewhere. We don't provide a suitable path for that.)
+	$consoleEncoding = [System.Console]::OutputEncoding
+	[System.Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+	& (Join-Path $absToolsPath "NetRevisionTool") /format dummy /rejectmod "$rootDir" >$null 2>$null
+	if ($LASTEXITCODE -ne 0)
+	{
+		[System.Console]::OutputEncoding = $consoleEncoding
+		return $true
+	}
+	[System.Console]::OutputEncoding = $consoleEncoding
+	return $false
+}

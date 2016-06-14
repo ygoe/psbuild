@@ -306,6 +306,22 @@ function WaitError($msg)
 	& (Join-Path $absToolsPath "FlashConsoleWindow") -noprogress
 }
 
+# Shows a message and quits after a timeout.
+#
+function QuitMessage($msg)
+{
+	Write-Host ""
+	Write-Host -ForegroundColor Green $msg
+	if ([Utils]::IsInteractiveAndVisible)
+	{
+		& (Join-Path $absToolsPath "FlashConsoleWindow") -progress 100
+		Write-Host "Press any key to exit" -NoNewLine
+		Wait-Key $false 10000 $true
+		Write-Host ""
+	}
+	& (Join-Path $absToolsPath "FlashConsoleWindow") -noprogress
+}
+
 # Returns the system platform (x86, x64).
 #
 function Get-Platform()
@@ -531,16 +547,7 @@ function End-BuildScript()
 		$duration = ($endTime - $global:startTime).TotalSeconds.ToString("0") + " seconds"
 	}
 
-	Write-Host ""
-	Write-Host -ForegroundColor Green "Build succeeded in $duration."
-	if ([Utils]::IsInteractiveAndVisible)
-	{
-		& (Join-Path $absToolsPath "FlashConsoleWindow") -progress 100
-		Write-Host "Press any key to exit" -NoNewLine
-		Wait-Key $false 10000 $true
-		Write-Host ""
-	}
-	& (Join-Path $absToolsPath "FlashConsoleWindow") -noprogress
+	QuitMessage "Build succeeded in $duration."
 }
 
 # ==============================  MODULE SUPPORT  ==============================

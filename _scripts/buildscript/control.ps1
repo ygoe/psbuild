@@ -6,14 +6,19 @@ Begin-BuildScript "FieldLog"
 # Find revision format from the source code, require Git checkout
 Set-VcsVersion "" "/require git"
 
+# FieldLog.*NET* projects are overlapping, don't build them in parallel
+Disable-ParallelBuild
+
 if ((IsSelected commit) -and !(Git-IsModified))
 {
 	QuitMessage "Nothing to commit."
 	exit 0
 }
 
-# FieldLog.*NET* projects are overlapping, don't build them in parallel
-Disable-ParallelBuild
+if (!(IsSelected commit))
+{
+	Git-LfsPull
+}
 
 # Release builds
 if (IsAnySelected build commit publish)

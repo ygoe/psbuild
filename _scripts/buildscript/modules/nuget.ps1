@@ -63,9 +63,10 @@ function Do-Restore-NuGetPackages($action)
 
 	$nugetBin = Find-NuGet
 
-	& $nugetBin restore (MakeRootedPath $solutionFile) -NonInteractive > $null
+	$textOut = & $nugetBin restore (MakeRootedPath $solutionFile) -NonInteractive 2>&1
 	if (-not $?)
 	{
+		Write-Host $textOut
 		WaitError "Restoring NuGet packages failed"
 		exit 1
 	}
@@ -80,9 +81,10 @@ function Do-Create-NuGetPackage($action)
 
 	$nugetBin = Find-NuGet
 
-	& $nugetBin pack (MakeRootedPath $specFile) -OutputDirectory (MakeRootedPath $outDir) -Version $shortRevId -NonInteractive > $null
+	$textOut = & $nugetBin pack (MakeRootedPath $specFile) -OutputDirectory (MakeRootedPath $outDir) -Version $shortRevId -NonInteractive 2>&1
 	if (-not $?)
 	{
+		Write-Host $textOut
 		WaitError "Creating NuGet package failed"
 		exit 1
 	}

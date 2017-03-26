@@ -103,11 +103,11 @@ function Do-Push-NuGetPackage($action)
 
 	if ($apiKey)
 	{
-		& $nugetBin push (MakeRootedPath $packageFile) -ApiKey $apiKey -NonInteractive
+		& $nugetBin push (MakeRootedPath $packageFile) -ApiKey $apiKey -NonInteractive -Source https://www.nuget.org/api/v2/package
 	}
 	else
 	{
-		& $nugetBin push (MakeRootedPath $packageFile) -NonInteractive
+		& $nugetBin push (MakeRootedPath $packageFile) -NonInteractive -Source https://www.nuget.org/api/v2/package
 	}
 	if (-not $?)
 	{

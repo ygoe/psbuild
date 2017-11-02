@@ -26,7 +26,7 @@ function Run-MSTestMeta($metadataFile, $runConfig, $testList, $resultFile, $time
 # $asmFile = The file name of the assembly that contains the test methods.
 # $resultFile = The name of the test result file to create.
 #
-# Requires MSTest from Visual Studio 2015, 2013, 2012 or 2010 to be installed.
+# Requires MSTest from Visual Studio 2017, 2015, 2013, 2012 or 2010 to be installed.
 #
 function Run-MSTestAsm($asmFile, $resultFile, $time = 5)
 {
@@ -100,7 +100,19 @@ function Find-MSTest()
 	}
 	
 	# Find the MSTest binary
-	$mstestBin = Check-FileName "$pfx86\Microsoft Visual Studio 14.0\Common7\IDE\MSTest.exe"
+	$mstestBin = Check-FileName "$pfx86\Microsoft Visual Studio\2017\Enterprise\Common7\IDE\MSTest.exe"
+	if (!$mstestBin)
+	{
+		$mstestBin = Check-FileName "$pfx86\Microsoft Visual Studio\2017\Professional\Common7\IDE\MSTest.exe"
+	}
+	if (!$mstestBin)
+	{
+		$mstestBin = Check-FileName "$pfx86\Microsoft Visual Studio\2017\Community\Common7\IDE\MSTest.exe"
+	}
+	if (!$mstestBin)
+	{
+		$mstestBin = Check-FileName "$pfx86\Microsoft Visual Studio 14.0\Common7\IDE\MSTest.exe"
+	}
 	if (!$mstestBin)
 	{
 		$mstestBin = Check-FileName "$pfx86\Microsoft Visual Studio 12.0\Common7\IDE\MSTest.exe"

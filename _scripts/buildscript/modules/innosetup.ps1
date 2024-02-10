@@ -1,5 +1,5 @@
 # PowerShell build framework
-# Copyright (c) 2015, Yves Goergen, http://unclassified.software/source/psbuild
+# Copyright (c) 2015, 2022, Yves Goergen, https://unclassified.software/source/psbuild
 #
 # Copying and distribution of this file, with or without modification, are permitted provided the
 # copyright notice and this notice are preserved. This file is offered as-is, without any warranty.
@@ -13,7 +13,7 @@
 #
 # The current build revision ID is passed to the setup script as "RevId".
 #
-# Requires Inno Setup 5 to be installed.
+# Requires Inno Setup 5 or 6 to be installed.
 #
 function Create-Setup($configFile, $configuration, $time = 1)
 {
@@ -33,12 +33,20 @@ function Do-Create-Setup($action)
 	# Find the InnoSetup binary
 	if ((Get-Platform) -eq "x64")
 	{
-		$innosetupBin = Check-RegFilename "hklm:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Inno Setup 5_is1" "InstallLocation"
+		$innosetupBin = Check-RegFilename "hklm:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Inno Setup 6_is1" "InstallLocation"
+		if ($innosetupBin -eq $null)
+		{
+			$innosetupBin = Check-RegFilename "hklm:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Inno Setup 5_is1" "InstallLocation"
+		}
 		$innosetupBin = Check-Filename "$innosetupBin\ISCC.exe"
 	}
 	if ((Get-Platform) -eq "x86")
 	{
-		$innosetupBin = Check-RegFilename "hklm:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Inno Setup 5_is1" "InstallLocation"
+		$innosetupBin = Check-RegFilename "hklm:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Inno Setup 6_is1" "InstallLocation"
+		if ($innosetupBin -eq $null)
+		{
+			$innosetupBin = Check-RegFilename "hklm:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Inno Setup 5_is1" "InstallLocation"
+		}
 		$innosetupBin = Check-Filename "$innosetupBin\ISCC.exe"
 	}
 	if ($innosetupBin -eq $null)
